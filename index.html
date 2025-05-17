@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Đặt Hàng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center mb-6">Form Đặt Hàng</h1>
+        <form id="orderForm" class="space-y-4">
+            <!-- Sản phẩm -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Sản phẩm</label>
+                <select id="product" name="product" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+                    <option value="" disabled selected>Chọn sản phẩm</option>
+                    <!-- Các option sẽ được thêm bởi JavaScript -->
+                </select>
+            </div>
+
+            <!-- Size -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Size</label>
+                <select id="size" name="size" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+                    <option value="" disabled selected>Chọn size</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                </select>
+            </div>
+
+            <!-- Số lượng -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Số lượng</label>
+                <input type="number" id="quantity" name="quantity" min="1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            </div>
+
+            <!-- Tên khách -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tên khách</label>
+                <input type="text" id="customername" name="customername" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            </div>
+
+            <!-- SĐT -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Số điện thoại</label>
+                <input type="tel" id="phone" name="phone" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            </div>
+
+            <!-- Địa chỉ -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Địa chỉ</label>
+                <input type="text" id="address" name="address" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            </div>
+
+            <!-- Ghi chú -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Ghi chú</label>
+                <textarea id="notes" name="notes" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" rows="4"></textarea>
+            </div>
+
+            <!-- Tổng tiền -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tổng tiền</label>
+                <input type="text" id="totalprice" name="totalprice" class="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+            </div>
+
+            <!-- Nút gửi -->
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">Gửi Đơn Hàng</button>
+        </form>
+    </div>
+
+    <script>
+        // Thay bằng Web App URL của bạn
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyGo-pWiqP0L8bQC4qHmfdJBM8fYQuWfoWfPgklOUjNWkk23KIn42zFYF7nwI9qn6id-A/exec';
+        // Telegram Bot API
+        const telegramBotToken = '7626564277:AAHamCcfY86-jhqBukZW9wKXKuzWBXEo5jo';
+        const telegramChatId = '7561438631';
+
+        // Danh sách sản phẩm và giá (xóa dấu phẩy thừa)
+        const products = [
+            { name: "Quần ống rộng", price: 139000 },
+            { name: "Áo sơ mi chấm bi", price: 189000 },
+            { name: "SET vàng trắng", price: 229000 },
+            { name: "SET cộc", price: 239000 }
+        ];
+
+        // Thêm sản phẩm vào select
+        const productSelect = document.getElementById("product");
+        products.forEach(product => {
+            const option = document.createElement("option");
+            option.value = product.name;
+            option.textContent = `${product.name} - ${product.price.toLocaleString("vi-VN")} VND`;
+            option.dataset.price = product.price;
+            productSelect.appendChild(option);
+        });
+
+        // Tính tổng tiền
+        function calculateTotal() {
+            const product = productSelect.options[productSelect.selectedIndex];
+            const quantity = parseInt(document.getElementById("quantity").value) || 0;
+            const price = product ? parseInt(product.dataset.price) : 0;
+            const total = price * quantity;
+            document.getElementById("totalprice").value = total.toLocaleString("vi-VN") + " VND";
+        }
+
+        // Gọi hàm tính tổng tiền khi thay đổi sản phẩm hoặc số lượng
+        productSelect.addEventListener("change", calculateTotal);
+        document.getElementById("quantity").addEventListener("input", calculateTotal);
+
+        // Xử lý gửi form
+        document.getElementById("orderForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            
+            const form = document.getElementById("orderForm");
+            const formData = new FormData(form);
+            const formObject = Object.fromEntries(formData);
+
+            // Gửi dữ liệu đến Google Sheets
+            fetch(scriptURL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Lỗi khi gửi đến Google Sheets: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.result === 'success') {
+                    // Gửi thông báo qua Telegram
+                    const message = `
+📦 *Đơn hàng mới* 📦
+- *Sản phẩm*: ${formObject.product}
+- *Size*: ${formObject.size}
+- *Số lượng*: ${formObject.quantity}
+- *Tên khách*: ${formObject.customername}
+- *SĐT*: ${formObject.phone}
+- *Địa chỉ*: ${formObject.address}
+- *Ghi chú*: ${formObject.notes || 'Không có'}
+- *Tổng tiền*: ${formObject.totalprice}
+- *Thời gian*: ${new Date().toLocaleString('vi-VN')}
+                    `;
+                    const telegramUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
+                    return fetch(telegramUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: telegramChatId,
+                            text: message,
+                            parse_mode: 'Markdown'
+                        })
+                    });
+                } else {
+                    throw new Error('Lỗi từ Google Sheets: ' + data.error);
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Lỗi khi gửi Telegram: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.ok) {
+                    alert("Đơn hàng đã được gửi, lưu vào Google Sheets và thông báo qua Telegram!");
+                    form.reset();
+                    document.getElementById("totalprice").value = "";
+                } else {
+                    throw new Error('Lỗi gửi thông báo Telegram: ' + data.description);
+                }
+            })
+            .catch(error => {
+                console.error('Lỗi:', error);
+                alert("Lỗi: " + error.message);
+            });
+        });
+    </script>
+</body>
+</html>
