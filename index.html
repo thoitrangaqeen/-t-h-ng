@@ -65,7 +65,7 @@
             <!-- Tổng tiền -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Tổng tiền</label>
-                <input type="text" id="totalprice" name="totalprice" class="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+                <input type="text" id="totalprice" name="totalprice" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" placeholder="Nhập tổng tiền" required>
             </div>
 
             <!-- Nút gửi -->
@@ -80,42 +80,54 @@
         const telegramBotToken = '7626564277:AAHamCcfY86-jhqBukZW9wKXKuzWBXEo5jo';
         const telegramChatId = '7561438631';
 
-        // Danh sách sản phẩm và giá (xóa dấu phẩy thừa)
+        // Danh sách sản phẩm
         const products = [
-            { name: "Quần ống rộng", price: 139000 },
-            { name: "Áo sơ mi chấm bi", price: 189000 },
-            { name: "SET vàng trắng", price: 229000 },
-            { name: "SET cộc", price: 239000 },
-            { name: "Đầm kaki", price: 209000 }
+            "Quần ống rộng",
+            "Áo sơ mi chấm bi",
+            "SET vàng trắng",
+            "SET cộc",
+            "Đầm kaki"
         ];
 
         // Thêm sản phẩm vào select
         const productSelect = document.getElementById("product");
         products.forEach(product => {
             const option = document.createElement("option");
-            option.value = product.name;
-            option.textContent = `${product.name} - ${product.price.toLocaleString("vi-VN")} VND`;
-            option.dataset.price = product.price;
+            option.value = product;
+            option.textContent = product;
             productSelect.appendChild(option);
         });
 
-        // Tính tổng tiền
-        function calculateTotal() {
-            const product = productSelect.options[productSelect.selectedIndex];
-            const quantity = parseInt(document.getElementById("quantity").value) || 0;
-            const price = product ? parseInt(product.dataset.price) : 0;
-            const total = price * quantity;
-            document.getElementById("totalprice").value = total.toLocaleString("vi-VN") + " VND";
+        // Định dạng số tiền
+        function formatCurrency(value) {
+            // Loại bỏ tất cả ký tự không phải số
+            const numericValue = value.replace(/[^\d]/g, '');
+
+            // Nếu không có số nào thì return rỗng
+            if (!numericValue) return '';
+
+            // Định dạng số với dấu chấm phân cách hàng nghìn và thêm VNĐ
+            return parseInt(numericValue).toLocaleString('vi-VN') + ' VNĐ';
         }
 
-        // Gọi hàm tính tổng tiền khi thay đổi sản phẩm hoặc số lượng
-        productSelect.addEventListener("change", calculateTotal);
-        document.getElementById("quantity").addEventListener("input", calculateTotal);
+        // Xử lý định dạng khi nhập tổng tiền
+        const totalPriceInput = document.getElementById("totalprice");
+        totalPriceInput.addEventListener("input", function(e) {
+            const cursorPosition = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const newValue = formatCurrency(oldValue);
+
+            e.target.value = newValue;
+
+            // Giữ vị trí con trỏ hợp lý
+            const newCursorPosition = Math.min(cursorPosition, newValue.length - 4); // -4 để tránh vào phần " VNĐ"
+            e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+        });
 
         // Xử lý gửi form
         document.getElementById("orderForm").addEventListener("submit", function (e) {
             e.preventDefault();
-            
+
             const form = document.getElementById("orderForm");
             const formData = new FormData(form);
             const formObject = Object.fromEntries(formData);
@@ -170,7 +182,6 @@
                 if (data.ok) {
                     alert("Đơn hàng đã được gửi, lưu vào Google Sheets và thông báo qua Telegram!");
                     form.reset();
-                    document.getElementById("totalprice").value = "";
                 } else {
                     throw new Error('Lỗi gửi thông báo Telegram: ' + data.description);
                 }
