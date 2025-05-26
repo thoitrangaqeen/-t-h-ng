@@ -76,9 +76,8 @@
     <script>
         // Thay bằng Web App URL của bạn
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyGo-pWiqP0L8bQC4qHmfdJBM8fYQuWfoWfPgklOUjNWkk23KIn42zFYF7nwI9qn6id-A/exec';
-        // Telegram Bot API
-        const telegramBotToken = '7626564277:AAHamCcfY86-jhqBukZW9wKXKuzWBXEo5jo';
-        const telegramChatId = '7561438631';
+        // Discord Webhook URL
+        const discordWebhookUrl = 'https://discord.com/api/webhooks/1376472457585889330/OBEWR-BMc-DZEg16HLYm7yhHfvlIFbtX1oFzOmwMr75qqIVtVTJJo9Zv6RF6PY7m7IfE';
 
         // Danh sách sản phẩm
         const products = [
@@ -145,28 +144,65 @@
             })
             .then(data => {
                 if (data.result === 'success') {
-                    // Gửi thông báo qua Telegram
-                    const message = `
-📦 *Đơn hàng mới* 📦
-- *Sản phẩm*: ${formObject.product}
-- *Size*: ${formObject.size}
-- *Số lượng*: ${formObject.quantity}
-- *Tên khách*: ${formObject.customername}
-- *SĐT*: ${formObject.phone}
-- *Địa chỉ*: ${formObject.address}
-- *Ghi chú*: ${formObject.notes || 'Không có'}
-- *Tổng tiền*: ${formObject.totalprice}
-- *Thời gian*: ${new Date().toLocaleString('vi-VN')}
-                    `;
-                    const telegramUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
-                    return fetch(telegramUrl, {
+                    // Gửi thông báo qua Discord
+                    const message = {
+                        embeds: [{
+                            title: "📦 Đơn hàng mới",
+                            color: 3447003, // Màu xanh dương
+                            fields: [
+                                {
+                                    name: "Sản phẩm",
+                                    value: formObject.product,
+                                    inline: true
+                                },
+                                {
+                                    name: "Size",
+                                    value: formObject.size,
+                                    inline: true
+                                },
+                                {
+                                    name: "Số lượng",
+                                    value: formObject.quantity,
+                                    inline: true
+                                },
+                                {
+                                    name: "Tên khách",
+                                    value: formObject.customername,
+                                    inline: true
+                                },
+                                {
+                                    name: "SĐT",
+                                    value: formObject.phone,
+                                    inline: true
+                                },
+                                {
+                                    name: "Địa chỉ",
+                                    value: formObject.address,
+                                    inline: true
+                                },
+                                {
+                                    name: "Ghi chú",
+                                    value: formObject.notes || 'Không có',
+                                    inline: true
+                                },
+                                {
+                                    name: "Tổng tiền",
+                                    value: formObject.totalprice,
+                                    inline: true
+                                },
+                                {
+                                    name: "Thời gian",
+                                    value: new Date().toLocaleString('vi-VN'),
+                                    inline: true
+                                }
+                            ]
+                        }]
+                    };
+
+                    return fetch(discordWebhookUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: telegramChatId,
-                            text: message,
-                            parse_mode: 'Markdown'
-                        })
+                        body: JSON.stringify(message)
                     });
                 } else {
                     throw new Error('Lỗi từ Google Sheets: ' + data.error);
@@ -174,17 +210,11 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Lỗi khi gửi Telegram: ' + response.statusText);
+                    throw new Error('Lỗi khi gửi Discord: ' + response.statusText);
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.ok) {
-                    alert("Đơn hàng đã được gửi, lưu vào Google Sheets và thông báo qua Telegram!");
-                    form.reset();
-                } else {
-                    throw new Error('Lỗi gửi thông báo Telegram: ' + data.description);
-                }
+                // Không cần parse JSON từ Discord response
+                alert("Đơn hàng đã được gửi, lưu vào Google Sheets và thông báo qua Discord!");
+                form.reset();
             })
             .catch(error => {
                 console.error('Lỗi:', error);
