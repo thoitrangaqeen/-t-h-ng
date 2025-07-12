@@ -76,11 +76,13 @@
     <script>
         // Thay bằng Web App URL của bạn
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyGo-pWiqP0L8bQC4qHmfdJBM8fYQuWfoWfPgklOUjNWkk23KIn42zFYF7nwI9qn6id-A/exec';
-        // Discord Webhook URL
-        const discordWebhookUrl = 'https://discord.com/api/webhooks/1387357040610906193/Rkv5qzqgEbpYlhQxXjNUFgHSdVyTa_HCoGS2KJpDkjnOWQbwpIPXm2-XkEn7zXU-INWy';
+        // Telegram Bot API
+        const telegramBotToken = '7626564277:AAHamCcfY86-jhqBukZW9wKXKuzWBXEo5jo';
+        const telegramChatId = '7561438631';
+        const telegramApiUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
 
-        // Danh sách sản phẩm
-        const products = [
+        // Danh sách sản phẩm - có thể thêm/sửa/xóa dễ dàng
+        let products = [
             "Quần ống rộng",
             "Áo sơ mi chấm bi",
             "SET vàng trắng",
@@ -89,14 +91,52 @@
             "Áo trễ vai"
         ];
 
-        // Thêm sản phẩm vào select
-        const productSelect = document.getElementById("product");
-        products.forEach(product => {
-            const option = document.createElement("option");
-            option.value = product;
-            option.textContent = product;
-            productSelect.appendChild(option);
-        });
+        // Hàm để thêm sản phẩm mới
+        function addProduct(productName) {
+            if (productName && !products.includes(productName)) {
+                products.push(productName);
+                updateProductSelect();
+                console.log('Đã thêm sản phẩm:', productName);
+            }
+        }
+
+        // Hàm để xóa sản phẩm
+        function removeProduct(productName) {
+            const index = products.indexOf(productName);
+            if (index > -1) {
+                products.splice(index, 1);
+                updateProductSelect();
+                console.log('Đã xóa sản phẩm:', productName);
+            }
+        }
+
+        // Hàm để cập nhật select box
+        function updateProductSelect() {
+            const productSelect = document.getElementById("product");
+            // Lưu giá trị hiện tại
+            const currentValue = productSelect.value;
+            
+            // Xóa tất cả option cũ (trừ option đầu tiên)
+            while (productSelect.children.length > 1) {
+                productSelect.removeChild(productSelect.lastChild);
+            }
+            
+            // Thêm lại tất cả sản phẩm
+            products.forEach(product => {
+                const option = document.createElement("option");
+                option.value = product;
+                option.textContent = product;
+                productSelect.appendChild(option);
+            });
+            
+            // Khôi phục giá trị đã chọn nếu còn tồn tại
+            if (currentValue && products.includes(currentValue)) {
+                productSelect.value = currentValue;
+            }
+        }
+
+        // Khởi tạo danh sách sản phẩm
+        updateProductSelect();
 
         // Định dạng số tiền
         function formatCurrency(value) {
@@ -132,6 +172,9 @@
             const formData = new FormData(form);
             const formObject = Object.fromEntries(formData);
 
+            // Thêm thông tin về tên sản phẩm để xác định sheet
+            formData.append('productName', formObject.product);
+
             // Gửi dữ liệu đến Google Sheets
             fetch(scriptURL, {
                 method: 'POST',
@@ -145,65 +188,27 @@
             })
             .then(data => {
                 if (data.result === 'success') {
-                    // Gửi thông báo qua Discord
-                    const message = {
-                        embeds: [{
-                            title: "📦 Đơn hàng mới",
-                            color: 3447003, // Màu xanh dương
-                            fields: [
-                                {
-                                    name: "Sản phẩm",
-                                    value: formObject.product,
-                                    inline: true
-                                },
-                                {
-                                    name: "Size",
-                                    value: formObject.size,
-                                    inline: true
-                                },
-                                {
-                                    name: "Số lượng",
-                                    value: formObject.quantity,
-                                    inline: true
-                                },
-                                {
-                                    name: "Tên khách",
-                                    value: formObject.customername,
-                                    inline: true
-                                },
-                                {
-                                    name: "SĐT",
-                                    value: formObject.phone,
-                                    inline: true
-                                },
-                                {
-                                    name: "Địa chỉ",
-                                    value: formObject.address,
-                                    inline: true
-                                },
-                                {
-                                    name: "Ghi chú",
-                                    value: formObject.notes || 'Không có',
-                                    inline: true
-                                },
-                                {
-                                    name: "Tổng tiền",
-                                    value: formObject.totalprice,
-                                    inline: true
-                                },
-                                {
-                                    name: "Thời gian",
-                                    value: new Date().toLocaleString('vi-VN'),
-                                    inline: true
-                                }
-                            ]
-                        }]
-                    };
+                    // Gửi thông báo qua Telegram
+                    const message = `📦 *Đơn hàng mới*
 
-                    return fetch(discordWebhookUrl, {
+*Sản phẩm:* ${formObject.product}
+*Size:* ${formObject.size}
+*Số lượng:* ${formObject.quantity}
+*Tên khách:* ${formObject.customername}
+*SĐT:* ${formObject.phone}
+*Địa chỉ:* ${formObject.address}
+*Ghi chú:* ${formObject.notes || 'Không có'}
+*Tổng tiền:* ${formObject.totalprice}
+*Thời gian:* ${new Date().toLocaleString('vi-VN')}`;
+
+                    return fetch(telegramApiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(message)
+                        body: JSON.stringify({
+                            chat_id: telegramChatId,
+                            text: message,
+                            parse_mode: 'Markdown'
+                        })
                     });
                 } else {
                     throw new Error('Lỗi từ Google Sheets: ' + data.error);
@@ -211,17 +216,27 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Lỗi khi gửi Discord: ' + response.statusText);
+                    throw new Error('Lỗi khi gửi Telegram: ' + response.statusText);
                 }
-                // Không cần parse JSON từ Discord response
-                alert("Đơn hàng đã được gửi, lưu vào Google Sheets và thông báo qua Discord!");
-                form.reset();
+                return response.json();
+            })
+            .then(data => {
+                if (data.ok) {
+                    alert("Đơn hàng đã được gửi, lưu vào Google Sheets và thông báo qua Telegram!");
+                    form.reset();
+                } else {
+                    throw new Error('Lỗi từ Telegram API: ' + data.description);
+                }
             })
             .catch(error => {
                 console.error('Lỗi:', error);
                 alert("Lỗi: " + error.message);
             });
         });
+
+        // Thêm sản phẩm mới (có thể gọi từ console hoặc thêm button)
+        // Ví dụ: addProduct("Áo khoác mới");
+        // Ví dụ: removeProduct("Áo trễ vai");
     </script>
 </body>
 </html>
